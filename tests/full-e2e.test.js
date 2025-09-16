@@ -16,7 +16,7 @@ test('Полный E2E тест покупки самого дорогого т�
     const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
     const checkoutCompletePage = new CheckoutCompletePage(page);
 
-    // 1. Логин и проверка
+    //Логин и проверка
     await loginPage.navigate(); // ИСПРАВЛЕНО: navigate() вместо open()
     await loginPage.login('standard_user', 'secret_sauce');
     await expect(page).toHaveURL(/.*inventory.html/);
@@ -24,7 +24,7 @@ test('Полный E2E тест покупки самого дорогого т�
     const inventoryTitle = await inventoryPage.getTitle();
     expect(inventoryTitle).toBe('Products');
 
-    // 2. Поиск и добавление самого дорогого товара
+    //Поиск и добавление самого дорогого товара
     await inventoryPage.sortByPriceHighToLow();
     const productName = await inventoryPage.getFirstProductName();
     const productPrice = await inventoryPage.getFirstProductPrice();
@@ -35,7 +35,7 @@ test('Полный E2E тест покупки самого дорогого т�
     const cartCount = await inventoryPage.getCartItemsCount();
     expect(cartCount).toBe(1);
 
-    // 3. Переход в корзину и проверка
+    //Переход в корзину и проверка
     await inventoryPage.goToCart();
     await expect(page).toHaveURL(/.*cart.html/);
     
@@ -50,7 +50,7 @@ test('Полный E2E тест покупки самого дорогого т�
     expect(cartItemName).toBe(productName);
     expect(cartItemPrice).toBe(productPrice);
 
-    // 4. Оформление заказа - шаг 1
+    //Оформление заказа - шаг 1
     await cartPage.proceedToCheckout();
     await expect(page).toHaveURL(/.*checkout-step-one.html/);
     
@@ -61,7 +61,7 @@ test('Полный E2E тест покупки самого дорогого т�
     await checkoutStepOnePage.continueToOverview();
     await expect(page).toHaveURL(/.*checkout-step-two.html/);
 
-    // 5. Оформление заказа - шаг 2
+    //Оформление заказа - шаг 2
     const stepTwoTitle = await checkoutStepTwoPage.getTitle();
     expect(stepTwoTitle).toBe('Checkout: Overview');
     
@@ -74,11 +74,11 @@ test('Полный E2E тест покупки самого дорогого т�
     expect(tax).toContain('Tax: $');
     expect(total).toContain('Total: $');
 
-    // 6. Завершение заказа
+    //Завершение заказа
     await checkoutStepTwoPage.finishOrder();
     await expect(page).toHaveURL(/.*checkout-complete.html/);
 
-    // 7. Проверка успешного завершения
+    //Проверка успешного завершения
     const completeTitle = await checkoutCompletePage.getTitle();
     expect(completeTitle).toBe('Checkout: Complete!');
     
@@ -91,7 +91,7 @@ test('Полный E2E тест покупки самого дорогого т�
     const isComplete = await checkoutCompletePage.isOrderComplete();
     expect(isComplete).toBeTruthy();
 
-    // 8. Возврат на главную
+    //Возврат на главную
     await checkoutCompletePage.backToProducts();
     await expect(page).toHaveURL(/.*inventory.html/);
 });

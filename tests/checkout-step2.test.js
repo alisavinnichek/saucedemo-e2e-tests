@@ -43,12 +43,10 @@ test('Проверка расчета сумм заказа', async ({ page }) =
     const tax = await checkoutStepTwoPage.getTax();
     const total = await checkoutStepTwoPage.getTotal();
     
-    // Проверяем что суммы отображаются корректно
     expect(itemTotal).toContain('Item total: $');
     expect(tax).toContain('Tax: $');
     expect(total).toContain('Total: $');
     
-    // Проверяем что total > itemTotal (должен включать налог)
     const itemTotalValue = parseFloat(itemTotal.replace('Item total: $', ''));
     const totalValue = parseFloat(total.replace('Total: $', ''));
     expect(totalValue).toBeGreaterThan(itemTotalValue);

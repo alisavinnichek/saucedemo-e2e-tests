@@ -6,10 +6,9 @@ const CheckoutStepOnePage = require('../pages/CheckoutStepOnePage');
 const CheckoutStepTwoPage = require('../pages/CheckoutStepTwoPage');
 const CheckoutCompletePage = require('../pages/CheckoutCompletePage');
 
-test('Полный E2E тест покупки', async ({ page }) => {
-    console.log('Запуск полного E2E теста...');
+test('Полный E2E тест покупки самого дорогого товара', async ({ page }) => {
+    test.setTimeout(60000);
     
-    // Инициализация всех Page Objects
     const loginPage = new LoginPage(page);
     const inventoryPage = new InventoryPage(page);
     const cartPage = new CartPage(page);
@@ -17,38 +16,82 @@ test('Полный E2E тест покупки', async ({ page }) => {
     const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
     const checkoutCompletePage = new CheckoutCompletePage(page);
 
-    // Логин
-    await loginPage.open();
+    // 1. Логин и проверка
+    await loginPage.navigate(); // ИСПРАВЛЕНО: navigate() вместо open()
     await loginPage.login('standard_user', 'secret_sauce');
-    console.log('Логин выполнен');
+    await expect(page).toHaveURL(/.*inventory.html/);
+    
+    const inventoryTitle = await inventoryPage.getTitle();
+    expect(inventoryTitle).toBe('Products');
 
-    // Добавление товара
-    await inventoryPage.addFirstItemToCart();
+    // 2. Поиск и добавление самого дорогого товара
+    await inventoryPage.sortByPriceHighToLow();
+    const productName = await inventoryPage.getFirstProductName();
+    const productPrice = await inventoryPage.getFirstProductPrice();
+    
+    expect(productPrice).toBe('$49.99'); // Проверяем что это действительно самый дорогой
+    
+    await inventoryPage.addFirstProductToCart();
     const cartCount = await inventoryPage.getCartItemsCount();
     expect(cartCount).toBe(1);
-    console.log('Товар добавлен в корзину');
 
-    // Переход в корзину
-    await inventoryPage.openCart();
-    const itemsInCart = await cartPage.getItemsCount();
-    expect(itemsInCart).toBe(1);
-    console.log('Корзина открыта');
+    // 3. Переход в корзину и проверка
+    await inventoryPage.goToCart();
+    await expect(page).toHaveURL(/.*cart.html/);
+    
+    const cartTitle = await cartPage.getTitle();
+    expect(cartTitle).toBe('Your Cart');
+    
+    const itemsCount = await cartPage.getItemsCount();
+    expect(itemsCount).toBe(1);
+    
+    const cartItemName = await cartPage.getItemName();
+    const cartItemPrice = await cartPage.getItemPrice();
+    expect(cartItemName).toBe(productName);
+    expect(cartItemPrice).toBe(productPrice);
 
-    // Оформление заказа
-    await cartPage.goToCheckout();
-    await checkoutStepOnePage.fillUserInfo('Test', 'User', '12345');
-    await checkoutStepOnePage.continueToCheckout();
-    console.log('Информация заполнена');
+    // 4. Оформление заказа - шаг 1
+    await cartPage.proceedToCheckout();
+    await expect(page).toHaveURL(/.*checkout-step-one.html/);
+    
+    const stepOneTitle = await checkoutStepOnePage.getTitle();
+    expect(stepOneTitle).toBe('Checkout: Your Information');
+    
+    await checkoutStepOnePage.fillShippingInfo('Test', 'User', '12345');
+    await checkoutStepOnePage.continueToOverview();
+    await expect(page).toHaveURL(/.*checkout-step-two.html/);
 
-    // Подтверждение заказа
-    const totalPrice = await checkoutStepTwoPage.getTotalPrice();
-    await checkoutStepTwoPage.finishCheckout();
-    console.log(`Заказ оформлен, сумма: ${totalPrice}`);
+    // 5. Оформление заказа - шаг 2
+    const stepTwoTitle = await checkoutStepTwoPage.getTitle();
+    expect(stepTwoTitle).toBe('Checkout: Overview');
+    
+    const itemTotal = await checkoutStepTwoPage.getItemTotal();
+    expect(itemTotal).toContain(productPrice);
+    
+    const tax = await checkoutStepTwoPage.getTax();
+    const total = await checkoutStepTwoPage.getTotal();
+    
+    expect(tax).toContain('Tax: $');
+    expect(total).toContain('Total: $');
 
-    // Проверка завершения
+    // 6. Завершение заказа
+    await checkoutStepTwoPage.finishOrder();
+    await expect(page).toHaveURL(/.*checkout-complete.html/);
+
+    // 7. Проверка успешного завершения
+    const completeTitle = await checkoutCompletePage.getTitle();
+    expect(completeTitle).toBe('Checkout: Complete!');
+    
+    const completeHeader = await checkoutCompletePage.getCompleteHeader();
+    expect(completeHeader).toBe('Thank you for your order!');
+    
+    const completeText = await checkoutCompletePage.getCompleteText();
+    expect(completeText).toContain('Your order has been dispatched');
+    
     const isComplete = await checkoutCompletePage.isOrderComplete();
     expect(isComplete).toBeTruthy();
-    console.log('ЗАКАЗ УСПЕШНО ЗАВЕРШЕН!');
 
-    console.log('ВСЕ PAGE OBJECTS РАБОТАЮТ КОРРЕКТНО!');
+    // 8. Возврат на главную
+    await checkoutCompletePage.backToProducts();
+    await expect(page).toHaveURL(/.*inventory.html/);
 });

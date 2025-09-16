@@ -6,39 +6,72 @@ const CheckoutStepOnePage = require('../pages/CheckoutStepOnePage');
 const CheckoutStepTwoPage = require('../pages/CheckoutStepTwoPage');
 const CheckoutCompletePage = require('../pages/CheckoutCompletePage');
 
-test('Проверка работы CheckoutCompletePage', async ({ page }) => {
-    console.log('Тестируем CheckoutCompletePage...');
-    
+test.beforeEach(async ({ page }) => {
     const loginPage = new LoginPage(page);
-    const inventoryPage = new InventoryPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutStepOnePage = new CheckoutStepOnePage(page);
-    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
-    const checkoutCompletePage = new CheckoutCompletePage(page);
-
-    // Проходим все шаги
-    await loginPage.open();
+    await loginPage.navigate();
     await loginPage.login('standard_user', 'secret_sauce');
-    await inventoryPage.addFirstItemToCart();
-    await inventoryPage.openCart();
-    await cartPage.goToCheckout();
-    await checkoutStepOnePage.fillUserInfo('Test', 'User', '12345');
-    await checkoutStepOnePage.continueToCheckout();
-    await checkoutStepTwoPage.finishCheckout();
-    console.log('Заказ завершен');
+    
+    const inventoryPage = new InventoryPage(page);
+    await inventoryPage.addFirstProductToCart();
+    await inventoryPage.goToCart();
+    
+    const cartPage = new CartPage(page);
+    await cartPage.proceedToCheckout();
+    
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    await checkoutStepOnePage.fillShippingInfo('Test', 'User', '12345');
+    await checkoutStepOnePage.continueToOverview();
+    
+    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+    await checkoutStepTwoPage.finishOrder();
+});
 
-    // Проверяем страницу завершения
-    const completeTitle = await checkoutCompletePage.getPageTitle();
-    expect(completeTitle).toBe('Checkout: Complete!');
-    console.log('Страница завершения открыта');
+test('Отображение страницы завершения заказа', async ({ page }) => {
+    const checkoutCompletePage = new CheckoutCompletePage(page);
+    
+    const title = await checkoutCompletePage.getTitle();
+    expect(title).toBe('Checkout: Complete!');
+    
+    const completeHeader = await checkoutCompletePage.getCompleteHeader();
+    expect(completeHeader).toBe('Thank you for your order!');
+    
+    const completeText = await checkoutCompletePage.getCompleteText();
+    expect(completeText).toContain('Your order has been dispatched');
+    
+    // Проверяем что кнопка возврата отображается
+    await expect(checkoutCompletePage.backHomeButton).toBeVisible();
+});
 
-    // Проверяем сообщение
+test('Проверка успешного завершения заказа', async ({ page }) => {
+    const checkoutCompletePage = new CheckoutCompletePage(page);
+    
     const isComplete = await checkoutCompletePage.isOrderComplete();
     expect(isComplete).toBeTruthy();
-    console.log('Заказ успешно завершен');
+    
+    const completeHeader = await checkoutCompletePage.getCompleteHeader();
+    expect(completeHeader).toBe('Thank you for your order!');
+});
 
-    const completionMessage = await checkoutCompletePage.getCompletionMessage();
-    console.log(`Сообщение: ${completionMessage}`);
+test('Возврат на главную страницу после завершения заказа', async ({ page }) => {
+    const checkoutCompletePage = new CheckoutCompletePage(page);
+    
+    await checkoutCompletePage.backToProducts();
+    await expect(page).toHaveURL(/.*inventory.html/);
+});
 
-    console.log('CheckoutCompletePage работает!');
+test('Элементы страницы завершения заказа', async ({ page }) => {
+    const checkoutCompletePage = new CheckoutCompletePage(page);
+    
+    // Проверяем что все элементы отображаются
+    await expect(checkoutCompletePage.title).toBeVisible();
+    await expect(checkoutCompletePage.completeHeader).toBeVisible();
+    await expect(checkoutCompletePage.completeText).toBeVisible();
+    await expect(checkoutCompletePage.backHomeButton).toBeVisible();
+    
+    // Проверяем содержимое
+    const header = await checkoutCompletePage.getCompleteHeader();
+    const text = await checkoutCompletePage.getCompleteText();
+    
+    expect(header).toBe('Thank you for your order!');
+    expect(text).toContain('Your order has been dispatched');
 });

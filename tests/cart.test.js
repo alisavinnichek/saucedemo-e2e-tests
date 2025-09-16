@@ -3,34 +3,39 @@ const LoginPage = require('../pages/LoginPage');
 const InventoryPage = require('../pages/InventoryPage');
 const CartPage = require('../pages/CartPage');
 
-test('Проверка работы CartPage', async ({ page }) => {
-    console.log('Тестируем CartPage...');
-    
+test.beforeEach(async ({ page }) => {
     const loginPage = new LoginPage(page);
-    const inventoryPage = new InventoryPage(page);
-    const cartPage = new CartPage(page);
-
-    // Логинимся и добавляем товар
-    await loginPage.open();
+    await loginPage.navigate();
     await loginPage.login('standard_user', 'secret_sauce');
-    await inventoryPage.addFirstItemToCart();
-    console.log('Товар добавлен в корзину');
-
-    // Переходим в корзину
-    await inventoryPage.openCart();
     
-    const cartTitle = await cartPage.getPageTitle();
-    expect(cartTitle).toBe('Your Cart');
-    console.log('Корзина открыта');
+    const inventoryPage = new InventoryPage(page);
+    await inventoryPage.addFirstProductToCart();
+    await inventoryPage.goToCart();
+});
 
-    // Проверяем товары в корзине
+test('Отображение страницы корзины', async ({ page }) => {
+    const cartPage = new CartPage(page);
+    
+    const title = await cartPage.getTitle();
+    expect(title).toBe('Your Cart');
+});
+
+test('Проверка товара в корзине', async ({ page }) => {
+    const cartPage = new CartPage(page);
+    const inventoryPage = new InventoryPage(page);
+    
     const itemsCount = await cartPage.getItemsCount();
     expect(itemsCount).toBe(1);
-    console.log('Количество товаров верное');
+    
+    const cartItemName = await cartPage.getItemName();
+    const inventoryItemName = await inventoryPage.getFirstProductName();
+    
+    expect(cartItemName).toBe(inventoryItemName);
+});
 
-    const itemNames = await cartPage.getItemNames();
-    expect(itemNames.length).toBe(1);
-    console.log(`Товар в корзине: ${itemNames[0]}`);
-
-    console.log('CartPage работает!');
+test('Переход к оформлению заказа', async ({ page }) => {
+    const cartPage = new CartPage(page);
+    
+    await cartPage.proceedToCheckout();
+    await expect(page).toHaveURL(/.*checkout-step-one.html/);
 });

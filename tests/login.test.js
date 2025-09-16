@@ -1,34 +1,21 @@
 const { test, expect } = require('@playwright/test');
 const LoginPage = require('../pages/LoginPage');
 
-test('Проверка работы LoginPage', async ({ page }) => {
-    console.log('Начинаем тест LoginPage...');
-    
-    // Создаем экземпляр LoginPage
+test('Успешный логин', async ({ page }) => {
     const loginPage = new LoginPage(page);
     
-    // Открываем страницу
-    await loginPage.open();
-    console.log('Страница открыта');
+    await loginPage.navigate();
+    await loginPage.login('standard_user', 'secret_sauce');
     
-    // Проверяем что элементы есть на странице
-    await expect(loginPage.usernameInput).toBeVisible();
-    await expect(loginPage.passwordInput).toBeVisible();
-    await expect(loginPage.loginButton).toBeVisible();
-    console.log('Все элементы найдены');
+    await expect(page).toHaveURL(/.*inventory.html/);
+});
+
+test('Неуспешный логин с неверными данными', async ({ page }) => {
+    const loginPage = new LoginPage(page);
     
-    // Заполняем форму
-    await loginPage.usernameInput.fill('standard_user');
-    await loginPage.passwordInput.fill('secret_sauce');
-    console.log('Форма заполнена');
+    await loginPage.navigate();
+    await loginPage.login('invalid_user', 'wrong_password');
     
-    // Нажимаем кнопку
-    await loginPage.loginButton.click();
-    console.log('Кнопка нажата');
-    
-    // Проверяем что перешли на нужную страницу
-    await expect(page).toHaveURL('https://www.saucedemo.com/inventory.html');
-    await expect(page.locator('.title')).toHaveText('Products');
-    
-    console.log('LoginPage работает!');
+    const errorMessage = await loginPage.getErrorMessage();
+    expect(errorMessage).toContain('Username and password do not match');
 });

@@ -5,39 +5,65 @@ const CartPage = require('../pages/CartPage');
 const CheckoutStepOnePage = require('../pages/CheckoutStepOnePage');
 const CheckoutStepTwoPage = require('../pages/CheckoutStepTwoPage');
 
-test('Проверка работы CheckoutStepTwoPage', async ({ page }) => {
-    console.log('Тестируем CheckoutStepTwoPage...');
-    
+test.beforeEach(async ({ page }) => {
     const loginPage = new LoginPage(page);
-    const inventoryPage = new InventoryPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutStepOnePage = new CheckoutStepOnePage(page);
-    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
-
-    // Проходим все предыдущие шаги
-    await loginPage.open();
+    await loginPage.navigate();
     await loginPage.login('standard_user', 'secret_sauce');
-    await inventoryPage.addFirstItemToCart();
-    await inventoryPage.openCart();
-    await cartPage.goToCheckout();
-    await checkoutStepOnePage.fillUserInfo('Test', 'User', '12345');
-    await checkoutStepOnePage.continueToCheckout();
-    console.log('Перешли на второй шаг оформления');
+    
+    const inventoryPage = new InventoryPage(page);
+    await inventoryPage.addFirstProductToCart();
+    await inventoryPage.goToCart();
+    
+    const cartPage = new CartPage(page);
+    await cartPage.proceedToCheckout();
+    
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    await checkoutStepOnePage.fillShippingInfo('Test', 'User', '12345');
+    await checkoutStepOnePage.continueToOverview();
+});
 
-    // Проверяем второй шаг
-    const overviewTitle = await checkoutStepTwoPage.getPageTitle();
-    expect(overviewTitle).toBe('Checkout: Overview');
-    console.log('Страница Overview открыта');
+test('Отображение страницы обзора заказа', async ({ page }) => {
+    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+    
+    const title = await checkoutStepTwoPage.getTitle();
+    expect(title).toBe('Checkout: Overview');
+    
+    // Проверяем что все элементы отображаются
+    await expect(checkoutStepTwoPage.itemTotal).toBeVisible();
+    await expect(checkoutStepTwoPage.tax).toBeVisible();
+    await expect(checkoutStepTwoPage.total).toBeVisible();
+    await expect(checkoutStepTwoPage.finishButton).toBeVisible();
+    await expect(checkoutStepTwoPage.cancelButton).toBeVisible();
+});
 
-    // Проверяем товары
-    const orderItems = await checkoutStepTwoPage.getItemNames();
-    expect(orderItems.length).toBe(1);
-    console.log(`Товар в заказе: ${orderItems[0]}`);
+test('Проверка расчета сумм заказа', async ({ page }) => {
+    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+    
+    const itemTotal = await checkoutStepTwoPage.getItemTotal();
+    const tax = await checkoutStepTwoPage.getTax();
+    const total = await checkoutStepTwoPage.getTotal();
+    
+    // Проверяем что суммы отображаются корректно
+    expect(itemTotal).toContain('Item total: $');
+    expect(tax).toContain('Tax: $');
+    expect(total).toContain('Total: $');
+    
+    // Проверяем что total > itemTotal (должен включать налог)
+    const itemTotalValue = parseFloat(itemTotal.replace('Item total: $', ''));
+    const totalValue = parseFloat(total.replace('Total: $', ''));
+    expect(totalValue).toBeGreaterThan(itemTotalValue);
+});
 
-    // Проверяем сумму
-    const totalPrice = await checkoutStepTwoPage.getTotalPrice();
-    expect(totalPrice).toContain('$');
-    console.log(`Общая сумма: ${totalPrice}`);
+test('Отмена заказа на этапе обзора', async ({ page }) => {
+    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+    
+    await checkoutStepTwoPage.cancelCheckout();
+    await expect(page).toHaveURL(/.*inventory.html/);
+});
 
-    console.log('CheckoutStepTwoPage работает!');
+test('Завершение заказа', async ({ page }) => {
+    const checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+    
+    await checkoutStepTwoPage.finishOrder();
+    await expect(page).toHaveURL(/.*checkout-complete.html/);
 });

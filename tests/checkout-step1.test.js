@@ -4,35 +4,52 @@ const InventoryPage = require('../pages/InventoryPage');
 const CartPage = require('../pages/CartPage');
 const CheckoutStepOnePage = require('../pages/CheckoutStepOnePage');
 
-test('Проверка работы CheckoutStepOnePage', async ({ page }) => {
-    console.log('Тестируем CheckoutStepOnePage...');
-    
+test.beforeEach(async ({ page }) => {
     const loginPage = new LoginPage(page);
-    const inventoryPage = new InventoryPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutStepOnePage = new CheckoutStepOnePage(page);
-
-    // Логинимся, добавляем товар, переходим в корзину
-    await loginPage.open();
+    await loginPage.navigate();
     await loginPage.login('standard_user', 'secret_sauce');
-    await inventoryPage.addFirstItemToCart();
-    await inventoryPage.openCart();
-    console.log('Корзина открыта');
-
-    // Начинаем оформление
-    await cartPage.goToCheckout();
     
-    const checkoutTitle = await checkoutStepOnePage.getPageTitle();
-    expect(checkoutTitle).toBe('Checkout: Your Information');
-    console.log('Страница оформления открыта');
+    const inventoryPage = new InventoryPage(page);
+    await inventoryPage.addFirstProductToCart();
+    await inventoryPage.goToCart();
+    
+    const cartPage = new CartPage(page);
+    await cartPage.proceedToCheckout();
+});
 
-    // Заполняем информацию
-    await checkoutStepOnePage.fillUserInfo('Test', 'User', '12345');
-    console.log('Информация заполнена');
+test('Валидация формы информации о доставке', async ({ page }) => {
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    
+    // Проверяем что форма отображается
+    await expect(checkoutStepOnePage.firstNameInput).toBeVisible();
+    await expect(checkoutStepOnePage.lastNameInput).toBeVisible();
+    await expect(checkoutStepOnePage.postalCodeInput).toBeVisible();
+    await expect(checkoutStepOnePage.continueButton).toBeVisible();
+    await expect(checkoutStepOnePage.cancelButton).toBeVisible();
+});
 
-    // Продолжаем
-    await checkoutStepOnePage.continueToCheckout();
-    console.log('Переход на следующий шаг');
+test('Заполнение всех полей формы', async ({ page }) => {
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    
+    await checkoutStepOnePage.fillShippingInfo('John', 'Doe', '90210');
+    
+    // Проверяем что поля заполнены
+    await expect(checkoutStepOnePage.firstNameInput).toHaveValue('John');
+    await expect(checkoutStepOnePage.lastNameInput).toHaveValue('Doe');
+    await expect(checkoutStepOnePage.postalCodeInput).toHaveValue('90210');
+});
 
-    console.log('CheckoutStepOnePage работает!');
+test('Отмена оформления заказа', async ({ page }) => {
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    
+    await checkoutStepOnePage.cancelCheckout();
+    await expect(page).toHaveURL(/.*cart.html/);
+});
+
+test('Переход к обзору заказа после заполнения формы', async ({ page }) => {
+    const checkoutStepOnePage = new CheckoutStepOnePage(page);
+    
+    await checkoutStepOnePage.fillShippingInfo('Jane', 'Smith', '12345');
+    await checkoutStepOnePage.continueToOverview();
+    await expect(page).toHaveURL(/.*checkout-step-two.html/);
 });

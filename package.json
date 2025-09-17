@@ -1,0 +1,13 @@
+﻿{
+  "name": "saucedemo-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Saucedemo",
+  "scripts": {
+    "test": "playwright test",
+    "tests:ui": "playwright test --grep @ui",
+    "tests:api": "playwright test --grep @api"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

@@ -1,0 +1,43 @@
+name: Manual Test Run
+
+on:
+  workflow_dispatch: # Это волшебная строка для ручного запуска
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    #Скачиваем код
+    - uses: actions/checkout@v4
+    
+    #Ставим Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'v22.19.0'
+    
+    #Ставим зависимости
+    - name: Install dependencies
+      run: npm install
+    
+    #Ставим браузеры Playwright
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    
+    #Запускаем UI тесты
+    - name: Run UI tests
+      run: npm run tests:ui
+    
+    #Запускаем API тесты  
+    - name: Run API tests
+      run: npm run tests:api
+    
+    #Сохраняем отчет (даже если тесты упали)
+    - name: Upload test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 7

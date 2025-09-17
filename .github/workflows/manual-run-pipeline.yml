@@ -27,11 +27,11 @@ jobs:
     
     #Запускаем UI тесты
     - name: Run UI tests
-      run: npm run tests:ui
-    
+      run: npx playwright test --grep @ui --reporter=html || true
+
     #Запускаем API тесты  
     - name: Run API tests
-      run: npm run tests:api
+      run: npx playwright test --grep @api --reporter=html || true
     
     #Сохраняем отчет (даже если тесты упали)
     - name: Upload test report

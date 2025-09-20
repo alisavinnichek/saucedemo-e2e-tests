@@ -1,33 +1,38 @@
+const { expect } = require('@playwright/test');
+
 class CartPage {
     constructor(page) {
         this.page = page;
+        this.title = page.locator('.title');
         this.cartItems = page.locator('.cart_item');
         this.itemNames = page.locator('.inventory_item_name');
+        this.itemPrices = page.locator('.inventory_item_price');
         this.checkoutButton = page.locator('#checkout');
-        this.cartTitle = page.locator('.title');
+        this.continueShoppingButton = page.locator('#continue-shopping');
+    }
+
+    async getTitle() {
+        return await this.title.textContent();
     }
 
     async getItemsCount() {
         return await this.cartItems.count();
     }
 
-    async getItemNames() {
-        const names = [];
-        const count = await this.itemNames.count();
-        
-        for (let i = 0; i < count; i++) {
-            names.push(await this.itemNames.nth(i).textContent());
-        }
-        
-        return names;
+    async getItemName(index = 0) {
+        return await this.itemNames.nth(index).textContent();
     }
 
-    async goToCheckout() {
+    async getItemPrice(index = 0) {
+        return await this.itemPrices.nth(index).textContent();
+    }
+
+    async proceedToCheckout() {
         await this.checkoutButton.click();
     }
 
-    async getPageTitle() {
-        return await this.cartTitle.textContent();
+    async continueShopping() {
+        await this.continueShoppingButton.click();
     }
 }
 

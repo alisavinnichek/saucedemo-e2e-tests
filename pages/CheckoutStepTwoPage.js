@@ -1,33 +1,38 @@
+const { expect } = require('@playwright/test');
+
 class CheckoutStepTwoPage {
     constructor(page) {
         this.page = page;
-        this.itemNames = page.locator('.inventory_item_name');
-        this.totalLabel = page.locator('.summary_total_label');
+        this.title = page.locator('.title');
+        this.itemTotal = page.locator('.summary_subtotal_label');
+        this.tax = page.locator('.summary_tax_label');
+        this.total = page.locator('.summary_total_label');
         this.finishButton = page.locator('#finish');
-        this.pageTitle = page.locator('.title');
+        this.cancelButton = page.locator('#cancel');
     }
 
-    async getItemNames() {
-        const names = [];
-        const count = await this.itemNames.count();
-        
-        for (let i = 0; i < count; i++) {
-            names.push(await this.itemNames.nth(i).textContent());
-        }
-        
-        return names;
+    async getTitle() {
+        return await this.title.textContent();
     }
 
-    async getTotalPrice() {
-        return await this.totalLabel.textContent();
+    async getItemTotal() {
+        return await this.itemTotal.textContent();
     }
 
-    async finishCheckout() {
+    async getTax() {
+        return await this.tax.textContent();
+    }
+
+    async getTotal() {
+        return await this.total.textContent();
+    }
+
+    async finishOrder() {
         await this.finishButton.click();
     }
 
-    async getPageTitle() {
-        return await this.pageTitle.textContent();
+    async cancelCheckout() {
+        await this.cancelButton.click();
     }
 }
 
